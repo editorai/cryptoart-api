@@ -24,10 +24,19 @@ router.get('/artists/:pagesize/:currentpage', function (req, res) {
   var pagesize = req.params.pagesize;
   var currentpage = req.params.currentpage;
   var currentIdx = (currentpage - 1) * pagesize;
-  var sqlstring = "select * from public.artists_tbl ORDER BY number_creations DESC limit " + pagesize + "  OFFSET " + currentIdx + ";";
+  var sqlstring = "select * from public.artists_tbl ORDER BY numbe_sales DESC limit " + pagesize + "  OFFSET " + currentIdx + ";";
   pool.query(sqlstring, async function (err, result) {
 
-    const rows = result.rows;
+    const rows = result.rows.map(row => {
+
+      row.average_resale_price = row.average_resale_price / 1000000000000000000;
+      row.average_sale_price = row.average_sale_price / 1000000000000000000;
+      row.highest_resale = row.highest_resale / 1000000000000000000;
+      row.highest_sale = row.highest_sale / 1000000000000000000;
+      row.total_resales = row.total_resales / 1000000000000000000;
+      row.total_sales = row.total_sales / 1000000000000000000;
+      return row;
+    });
     if (rows && rows.length > 0) {
 
       const pgresult = await pool.query("select count(*) from public.artists_tbl");
@@ -98,7 +107,7 @@ router.get('/artworkhistorybyartist/:addresshash', function (req, res) {
       const artworksresult = await pool.query("select * from public.artwork_tbl where artistAddress = '" + addresshash + "'" +  ' order by "timeStamp" desc;');
       let artworks = artworksresult.rows;
 
-      const artworkshistoryresutl = await pool.query("select * from public.artwork_history_tbl where owner_address_hash = '" + addresshash + "' order by transfer_date asc;");
+      const artworkshistoryresutl = await pool.query("select * from public.artwork_history_tbl where event_type = 'successful' order by transfer_date asc;");
       let artworkshistory = artworkshistoryresutl.rows; 
 
       artworks = artworks.map(artwork => {
